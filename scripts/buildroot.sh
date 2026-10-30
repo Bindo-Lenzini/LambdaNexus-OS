@@ -10,6 +10,7 @@ DEFCONFIG="$EXTERNAL_DIR/configs/lambdanexus_qemu_aarch64_defconfig"
 BUILDROOT_COMMIT=137a566bf5353831d97c068a4c22e6df5b4d07a0
 BUILDROOT_TAG=2025.02.12
 QEMU=${QEMU:-qemu-system-aarch64}
+RELEASE_URL=https://github.com/Bindo-Lenzini/LambdaNexus-OS/releases/download/buildroot-latest
 
 need_command() {
     if ! command -v "$1" >/dev/null 2>&1; then
@@ -20,10 +21,7 @@ need_command() {
 
 build_image() {
     if [ "$(uname -s)" != Linux ]; then
-        printf '%s\n' \
-            'Buildroot must be built on a Linux host.' \
-            'Download the lambdanexus-buildroot artifact from the repository Actions workflow,' \
-            'place Image and rootfs.ext4 in .buildroot/output/images/, then run make run.' >&2
+        printf 'Buildroot must be built on a Linux host.\n' >&2
         exit 1
     fi
 
@@ -68,10 +66,59 @@ build_image() {
     make -C "$BUILDROOT_DIR" O="$OUTPUT_DIR" -j"$JOBS"
 }
 
+download_image() {
+    IMAGE_DIR="$OUTPUT_DIR/images"
+    if [ -s "$IMAGE_DIR/Image" ] && [ -s "$IMAGE_DIR/rootfs.ext4" ]; then
+        return
+    fi
+
+    if [ "$(uname -s)" != Darwin ]; then
+        printf '%s\n' \
+            'No Buildroot image is available locally.' \
+            'Build it with `make buildroot-image` on a Linux host.' >&2
+        exit 1
+    fi
+
+    need_command curl
+    need_command gzip
+    need_command shasum
+    mkdir -p "$IMAGE_DIR" "$DOWNLOAD_DIR"
+    TEMP_DIR=$(mktemp -d "$DOWNLOAD_DIR/.image.XXXXXX")
+    cleanup_download() {
+        rm -rf "$TEMP_DIR"
+    }
+    trap cleanup_download EXIT
+    trap 'exit 1' HUP INT TERM
+
+    for asset in SHA256SUMS Image.gz rootfs.ext4.gz; do
+        printf 'Downloading verified LambdaNexus image asset: %s\n' "$asset"
+        if ! curl -fL --retry 3 --progress-bar \
+            "$RELEASE_URL/$asset" -o "$TEMP_DIR/$asset"; then
+            printf '%s\n' \
+                'The verified LambdaNexus image has not been published yet.' \
+                'Check the latest Build LambdaNexus image workflow:' \
+                'https://github.com/Bindo-Lenzini/LambdaNexus-OS/actions/workflows/buildroot.yml' >&2
+            exit 1
+        fi
+    done
+    (cd "$TEMP_DIR" && shasum -a 256 -c SHA256SUMS)
+
+    gzip -dc "$TEMP_DIR/Image.gz" > "$IMAGE_DIR/Image.tmp"
+    gzip -dc "$TEMP_DIR/rootfs.ext4.gz" > "$IMAGE_DIR/rootfs.ext4.tmp"
+    mv "$IMAGE_DIR/Image.tmp" "$IMAGE_DIR/Image"
+    mv "$IMAGE_DIR/rootfs.ext4.tmp" "$IMAGE_DIR/rootfs.ext4"
+    cleanup_download
+    trap - EXIT HUP INT TERM
+}
+
 run_image() {
     IMAGE_DIR="$OUTPUT_DIR/images"
     if [ ! -s "$IMAGE_DIR/Image" ] || [ ! -s "$IMAGE_DIR/rootfs.ext4" ]; then
-        build_image
+        if [ "$(uname -s)" = Linux ]; then
+            build_image
+        else
+            download_image
+        fi
     fi
 
     need_command "$QEMU"
@@ -79,23 +126,27 @@ run_image() {
     case "$(uname -s)" in
         Darwin)
             ACCEL=hvf
+            CPU=host
             ;;
         Linux)
             if [ -e /dev/kvm ]; then
                 ACCEL=kvm
+                CPU=host
             else
                 ACCEL=tcg
+                CPU=cortex-a72
             fi
             ;;
         *)
             ACCEL=tcg
+            CPU=cortex-a72
             ;;
     esac
 
     exec "$QEMU" \
         -name "LambdaNexus OS" \
         -machine "virt,gic-version=3,accel=$ACCEL" \
-        -cpu cortex-a72 \
+        -cpu "$CPU" \
         -smp "${LAMBDA_CPUS:-4}" \
         -m "${LAMBDA_MEMORY:-2048}" \
         -kernel "$IMAGE_DIR/Image" \

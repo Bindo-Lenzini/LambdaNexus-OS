@@ -167,16 +167,20 @@ make run
 ```
 
 On a Linux host, the first run builds a pinned Buildroot release and a
-LambdaNexus ARM64 image. On macOS, download the `lambdanexus-buildroot`
-artifact from the repository's **Build LambdaNexus image** workflow and
-extract `Image` and `rootfs.ext4` into `.buildroot/output/images/` first.
-The guest starts the LambdaNexus shell directly; there is no Ubuntu login
-screen or first-boot package installation.
+LambdaNexus ARM64 image. On macOS, `make run` automatically downloads and
+verifies the latest QEMU-tested image published by the repository's
+**Build LambdaNexus image** workflow. No GitHub CLI, Ubuntu VM, or manual
+artifact download is needed. The guest starts the LambdaNexus shell directly;
+there is no Ubuntu login screen or first-boot package installation.
 
 To build the image explicitly on Linux, run `make buildroot-image`. The image
 uses 2 GiB of RAM and 4 virtual CPUs by default; override them with
 `LAMBDA_MEMORY` and `LAMBDA_CPUS` if needed. Build output and downloads are
 stored in `.buildroot/`.
+
+The CI workflow publishes the compressed kernel and root filesystem only after
+the image boots and displays the LambdaNexus shell in QEMU. Release downloads
+are checked against the published SHA-256 manifest before they are installed.
 
 ### Run the experimental freestanding kernel
 

@@ -13,9 +13,15 @@ on:
       - ".github/workflows/buildroot.yml"
   workflow_dispatch:
 
+concurrency:
+  group: buildroot-image-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Install Buildroot host dependencies
@@ -49,6 +55,94 @@ jobs:
           fi
           grep -F "LambdaNexus OS" .buildroot/boot.log
           grep -F "lambda-nexus#" .buildroot/boot.log
+      - name: Compress and checksum the images
+        run: |
+          gzip -1 -k .buildroot/output/images/Image
+          gzip -1 -k .buildroot/output/images/rootfs.ext4
+          cd .buildroot/output/images
+          sha256sum Image.gz rootfs.ext4.gz > SHA256SUMS
+      - name: Publish the verified image release
+        uses: actions/github-script@v7
+        env:
+          BUILDROOT_COMMIT: 137a566bf5353831d97c068a4c22e6df5b4d07a0
+        with:
+          script: |
+            const fs = require("fs");
+            const path = ".buildroot/output/images";
+            let release;
+
+            try {
+              const response = await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag: "buildroot-latest",
+              });
+              release = response.data;
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
+
+            const body = [
+              `Verified Buildroot ARM64 image for commit ${context.sha}.`,
+              `Buildroot source: ${process.env.BUILDROOT_COMMIT}.`,
+              "Boot-tested in QEMU by the Build LambdaNexus image workflow.",
+            ].join("\n\n");
+
+            if (release) {
+              const assets = await github.paginate(
+                github.rest.repos.listReleaseAssets,
+                {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: release.id,
+                  per_page: 100,
+                },
+              );
+              for (const asset of assets) {
+                await github.rest.repos.deleteReleaseAsset({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  asset_id: asset.id,
+                });
+              }
+              await github.rest.repos.updateRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: release.id,
+                name: `LambdaNexus Buildroot image (${context.sha.slice(0, 12)})`,
+                body,
+                prerelease: true,
+                make_latest: "false",
+              });
+            } else {
+              const response = await github.rest.repos.createRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag_name: "buildroot-latest",
+                target_commitish: context.sha,
+                name: `LambdaNexus Buildroot image (${context.sha.slice(0, 12)})`,
+                body,
+                draft: false,
+                prerelease: true,
+                make_latest: "false",
+              });
+              release = response.data;
+            }
+
+            for (const name of ["Image.gz", "rootfs.ext4.gz", "SHA256SUMS"]) {
+              const data = fs.readFileSync(`${path}/${name}`);
+              await github.rest.repos.uploadReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: release.id,
+                name,
+                data,
+                headers: {
+                  "content-type": "application/octet-stream",
+                  "content-length": data.length,
+                },
+              });
+            }
       - uses: actions/upload-artifact@v4
         with:
           name: lambdanexus-buildroot
