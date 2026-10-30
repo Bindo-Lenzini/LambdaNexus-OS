@@ -1,23 +1,24 @@
-# BrainixKernel
+# LambdaNexus OS
 
 An experimental AArch64 kernel written in C and ARM64 assembly, developed on
 Apple Silicon and tested in QEMU.
 
-[![Build](https://github.com/Bindo-Lenzini/BrainixKernel/actions/workflows/build.yml/badge.svg)](https://github.com/Bindo-Lenzini/BrainixKernel/actions/workflows/build.yml)
+[![Build](https://github.com/Bindo-Lenzini/LambdaNexus-OS/actions/workflows/build.yml/badge.svg)](https://github.com/Bindo-Lenzini/LambdaNexus-OS/actions/workflows/build.yml)
 [![License: GPL-2.0](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](./LICENSE)
 
 > [!WARNING]
-> **BrainixKernel is unfinished experimental software. It is not a production
+> **LambdaNexus OS is unfinished experimental software. It is not a production
 > operating system and does not guarantee security, reliability, or data
 > integrity.** Security mechanisms and tests are incomplete. Do not rely on
 > this kernel to protect sensitive data, and do not expose it to untrusted
 > users or networks. Use it for development and experimentation at your own
 > risk.
 
-The project is an ongoing effort to build a small, understandable kernel from
-scratch and explore modern operating-system design. This page describes the
-current state of development; implemented code does not necessarily mean a
-feature is complete or fully validated.
+LambdaNexus OS is based on [BrainixKernel](https://github.com/Bindo-Lenzini/BrainixKernel)
+and continues its work toward a small, understandable kernel and experimental
+operating system. This page describes the current state of development;
+implemented code does not necessarily mean a feature is complete or fully
+validated.
 
 ## Contents
 
@@ -33,7 +34,7 @@ feature is complete or fully validated.
 
 ## Project overview
 
-BrainixKernel targets the AArch64 architecture and QEMU's `virt` machine. It
+LambdaNexus OS targets the AArch64 architecture and QEMU's `virt` machine. It
 uses a freestanding toolchain and a custom linker script. The repository
 contains the kernel, a small userland, build helpers, and code for virtual
 devices, storage, networking, and a graphical desktop.
@@ -106,7 +107,7 @@ compliance, complete functionality, or comprehensive testing.
   and boots a headless QEMU smoke test with 512 MiB of guest RAM. The regular
   graphical QEMU configuration remains at 2 GiB.
 
-The [latest CI run](https://github.com/Bindo-Lenzini/BrainixKernel/actions)
+The [latest CI run](https://github.com/Bindo-Lenzini/LambdaNexus-OS/actions)
 passed these configured checks. Passing them only confirms the tested
 scenarios; it is not a complete security audit.
 
@@ -130,8 +131,8 @@ The build uses Clang, LLD, `llvm-objcopy`, Python 3, Pillow, and Make.
 ### Build
 
 ```sh
-git clone https://github.com/Bindo-Lenzini/BrainixKernel.git
-cd BrainixKernel
+git clone https://github.com/Bindo-Lenzini/LambdaNexus-OS.git
+cd LambdaNexus-OS
 make
 ```
 
@@ -224,8 +225,8 @@ Near-term development priorities:
 
 Longer-term goals include `mmap`, demand paging, a page cache, SMP support,
 stronger filesystem permissions, and additional kernel-hardening measures.
-BrainixKernel is not currently a drop-in replacement for XNU, Linux, or another
-production operating system.
+LambdaNexus OS is not currently a drop-in replacement for XNU, Linux, or
+another production operating system.
 
 ## Project layout
 
@@ -243,5 +244,5 @@ Makefile            Build, run, test, and clean targets
 
 ## License
 
-BrainixKernel is distributed under the GNU General Public License, version 2.
-See [LICENSE](./LICENSE).
+LambdaNexus OS is distributed under the GNU General Public License, version 2,
+and is based on BrainixKernel. See [LICENSE](./LICENSE).
