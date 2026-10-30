@@ -1,13 +1,13 @@
 // BrainixKernel — desktop.h
-#ifndef BRAINIX_DESKTOP_H
-#define BRAINIX_DESKTOP_H
+#ifndef LAMBDA_NEXUS_DESKTOP_H
+#define LAMBDA_NEXUS_DESKTOP_H
 
-#define DI_COMPUTER     0
-#define DI_RECYCLE      1
+#define DI_BROWSER      0
+#define DI_FILES        1
 #define DI_TERMINAL     2
-#define DI_FILES        3
-#define DI_EDITOR       4
-#define DI_PERSONALIZE  5
+#define DI_EDITOR       3
+#define DI_PERSONALIZE  4
+#define DI_ABOUT        5
 #define DI_COUNT        6
 
 int  desktop_hit(int x, int y);

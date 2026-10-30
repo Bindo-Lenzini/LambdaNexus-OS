@@ -108,32 +108,6 @@ void icon_draw_editor(int x, int y, int selected) {
 }
 
 // ============================================================
-// Brainix — синий, белая буква B
-// ============================================================
-void icon_draw_brainix(int x, int y, int selected) {
-    (void)selected;
-    bg_squircle(x, y, 0xFF4A90E2, 0xFF1E4480);
-
-    // Буква B — вертикальная стойка
-    fb_fill_round_rect_aa(x + 17, y + 13, 5, 22, 2, 0xFFFFFFFF);
-
-    // Верхняя дуга
-    fb_fill_circle_aa(x + 25, y + 19, 7, 0xFFFFFFFF);
-    fb_fill_circle_aa(x + 25, y + 19, 4, 0xFF2E5AA8);
-
-    // Нижняя дуга
-    fb_fill_circle_aa(x + 25, y + 29, 7, 0xFFFFFFFF);
-    fb_fill_circle_aa(x + 25, y + 29, 4, 0xFF2E5AA8);
-
-    // Перекрываем левую часть дуг стойкой, чтобы получилась B
-    fb_fill_round_rect_aa(x + 17, y + 13, 5, 22, 2, 0xFFFFFFFF);
-
-    // Правые «щёчки» B
-    fb_fill_rect(x + 32, y + 17, 1, 5, 0xFFFFFFFF);
-    fb_fill_rect(x + 32, y + 27, 1, 5, 0xFFFFFFFF);
-}
-
-// ============================================================
 // Settings — серебро, белая шестерёнка
 // ============================================================
 void icon_draw_settings(int x, int y, int selected) {
@@ -158,4 +132,23 @@ void icon_draw_settings(int x, int y, int selected) {
 
     // Отверстие в центре — цветом фона
     fb_fill_circle_aa(cx, cy, 5, 0xFF8A929E);
+}
+
+void icon_draw_lambda(int x, int y, int selected) {
+    (void)selected;
+    bg_squircle(x, y, 0xFF9B8CFF, 0xFF5548B8);
+    fb_draw_line_aa(x + 13, y + 34, x + 24, y + 13, 0xFFFFFFFF, 255);
+    fb_draw_line_aa(x + 24, y + 13, x + 35, y + 34, 0xFFFFFFFF, 255);
+    fb_draw_line_aa(x + 18, y + 25, x + 30, y + 25, 0xFFFFFFFF, 255);
+}
+
+void icon_draw_browser(int x, int y, int selected) {
+    (void)selected;
+    bg_squircle(x, y, 0xFF70D6C1, 0xFF238E98);
+    fb_fill_circle_aa(x + 24, y + 24, 15, 0xFFF7FFFF);
+    fb_fill_circle_aa(x + 24, y + 24, 12, 0xFF348B9A);
+    fb_draw_line_aa(x + 12, y + 24, x + 36, y + 24, 0xFFFFFFFF, 230);
+    fb_draw_line_aa(x + 24, y + 12, x + 24, y + 36, 0xFFFFFFFF, 230);
+    fb_draw_line_aa(x + 16, y + 16, x + 32, y + 32, 0xFFFFD978, 255);
+    fb_fill_circle_aa(x + 32, y + 16, 3, 0xFFFFD978);
 }

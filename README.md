@@ -47,7 +47,7 @@ devices, storage, networking, and a graphical desktop.
 | Devices and graphics | Virtio devices, framebuffer, keyboard, tablet, and window manager |
 | Storage | Initrd, block-device support, and the custom BKFS filesystem |
 | Networking | Experimental virtio networking and ARP, DHCP, IP, ICMP, UDP, TCP, and socket code |
-| Userland | Freestanding runtime, shell, and utility programs |
+| Userland | Freestanding runtime, shell, utility programs, and an early text-mode web browser |
 
 Subsystems are evolving. The presence of code does not imply full standards
 compliance, complete functionality, or comprehensive testing.
@@ -61,6 +61,8 @@ compliance, complete functionality, or comprehensive testing.
   masks; forked tasks inherit credentials.
 - A small userland including a shell, basic utilities, and network examples.
 - Experimental virtual-device, storage, network, and graphical desktop support.
+- A basic HTTP browser that extracts readable text from simple HTML pages.
+  HTTPS/TLS, JavaScript, images, and modern web applications are not supported.
 
 ## Latest development update
 
@@ -135,6 +137,11 @@ git clone https://github.com/Bindo-Lenzini/LambdaNexus-OS.git
 cd LambdaNexus-OS
 make
 ```
+
+The browser is available from its dock icon or the Browser desktop shortcut.
+Enter an `http://` address in its address bar and press Return. This early
+browser supports plain HTTP and basic text extraction only; it does not support
+HTTPS/TLS or execute JavaScript.
 
 The build produces:
 

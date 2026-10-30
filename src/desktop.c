@@ -1,32 +1,33 @@
-// BrainixKernel — desktop.c
-// Иконки 48×48, подписи с тенью и AA-фоном.
+// LambdaNexus OS desktop shortcuts.
 
 #include <stdint.h>
 #include "desktop.h"
 #include "fb.h"
 #include "icons.h"
 
-#define FIRST_X   14
-#define FIRST_Y   68
-#define ICON_CELL 90
-#define GAP_Y     4
+#define FIRST_X   38
+#define FIRST_Y   88
+#define ICON_CELL 104
+#define GAP_X     16
+#define GAP_Y     16
 
 static int g_selected = -1;
 
 static const char *g_labels[DI_COUNT] = {
-    "Computer",
-    "Recycle",
-    "Terminal",
+    "Browser",
     "Files",
-    "Editor",
-    "Personalize",
+    "Terminal",
+    "Notes",
+    "Settings",
+    "About",
 };
 
-static int icon_y(int idx) { return FIRST_Y + idx * (ICON_CELL + GAP_Y); }
+static int icon_x(int idx) { return FIRST_X + (idx % 3) * (ICON_CELL + GAP_X); }
+static int icon_y(int idx) { return FIRST_Y + (idx / 3) * (ICON_CELL + GAP_Y); }
 
 int desktop_hit(int x, int y) {
     for (int i = 0; i < DI_COUNT; i++) {
-        int ix = FIRST_X;
+        int ix = icon_x(i);
         int iy = icon_y(i);
         if (x >= ix && x < ix + ICON_CELL &&
             y >= iy && y < iy + ICON_CELL) return i;
@@ -51,12 +52,9 @@ static void draw_icon_at(int idx, int ix, int iy) {
     // Подсветка ячейки при выборе — мягкая AA-плашка
     if (sel) {
         fb_blend_round_rect_aa(ix + 4, iy + 2, ICON_CELL - 8, ICON_CELL - 4,
-                               12, 0xFF4A90E2, 70);
-        // Тонкая рамка
+                               14, 0xFF7267E8, 48);
         fb_blend_round_rect_aa(ix + 4, iy + 2, ICON_CELL - 8, ICON_CELL - 4,
-                               12, 0xFF4A90E2, 180);
-        fb_blend_round_rect_aa(ix + 5, iy + 3, ICON_CELL - 10, ICON_CELL - 6,
-                               11, 0x00000000, 0);  // no-op, оставляем
+                               14, 0xFFB8B3FF, 150);
     }
 
     // Иконка 48×48 по центру ячейки
@@ -64,12 +62,12 @@ static void draw_icon_at(int idx, int ix, int iy) {
     int icon_y_ = iy + 6;
 
     switch (idx) {
-        case DI_COMPUTER:    icon_draw_computer  (icon_x, icon_y_, sel); break;
-        case DI_RECYCLE:     icon_draw_recycle   (icon_x, icon_y_, sel); break;
-        case DI_TERMINAL:    icon_draw_ksh       (icon_x, icon_y_, sel); break;
+        case DI_BROWSER:     icon_draw_browser   (icon_x, icon_y_, sel); break;
         case DI_FILES:       icon_draw_files     (icon_x, icon_y_, sel); break;
+        case DI_TERMINAL:    icon_draw_ksh       (icon_x, icon_y_, sel); break;
         case DI_EDITOR:      icon_draw_editor    (icon_x, icon_y_, sel); break;
         case DI_PERSONALIZE: icon_draw_settings  (icon_x, icon_y_, sel); break;
+        case DI_ABOUT:       icon_draw_computer  (icon_x, icon_y_, sel); break;
     }
 
     // Подпись с тенью + AA-фон
@@ -89,7 +87,10 @@ static void draw_icon_at(int idx, int ix, int iy) {
 }
 
 void desktop_draw(void) {
-    for (int i = 0; i < DI_COUNT; i++) {
-        draw_icon_at(i, FIRST_X, icon_y(i));
-    }
+    for (int i = 0; i < DI_COUNT; i++) draw_icon_at(i, icon_x(i), icon_y(i));
+
+    fb_blend_round_rect_aa(670, 112, 500, 148, 18, 0xFF111827, 105);
+    fb_draw_string_aa(702, 140, "Welcome to LambdaNexus", 0xFFFFFFFF, 0);
+    fb_draw_string_aa(702, 170, "A fresh workspace for your ideas.", 0xFFE5E7EB, 0);
+    fb_draw_string_aa(702, 204, "Browse, create, and explore.", 0xFFD6D3FF, 0);
 }

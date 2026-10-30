@@ -12,8 +12,8 @@ extern void uart_puts(const char *s);
 #define HEADER_H 28
 #define MENU_H (HEADER_H + STARTMENU_ITEM_COUNT * ITEM_H + 6)
 
-#define MENU_X 8
-#define MENU_Y 552       // над иконкой B в доке
+#define MENU_X 700
+#define MENU_Y 484
 
 static int g_open  = 0;
 static int g_hover = -1;
@@ -107,19 +107,23 @@ void startmenu_draw(int mx, int my) {
     fb_fill_rect(MENU_X + 2, MENU_Y + 2, MENU_W, MENU_H, 0x80000000);
 
     // Тело.
-    fb_fill_rect(MENU_X, MENU_Y, MENU_W, MENU_H, 0xFF142844);
+    fb_fill_round_rect_aa(MENU_X, MENU_Y, MENU_W, MENU_H, 14, 0xFFF8F7FC);
 
     // Обводка.
-    fb_fill_rect(MENU_X, MENU_Y, MENU_W, 1, 0xFF4A90E2);
-    fb_fill_rect(MENU_X, MENU_Y + MENU_H - 1, MENU_W, 1, 0xFF4A90E2);
-    fb_fill_rect(MENU_X, MENU_Y, 1, MENU_H, 0xFF4A90E2);
-    fb_fill_rect(MENU_X + MENU_W - 1, MENU_Y, 1, MENU_H, 0xFF4A90E2);
+    fb_fill_rect(MENU_X + 12, MENU_Y, MENU_W - 24, 1, 0xFFB8B3FF);
+    fb_fill_rect(MENU_X + 12, MENU_Y + MENU_H - 1,
+                 MENU_W - 24, 1, 0xFFB8B3FF);
+    fb_fill_rect(MENU_X, MENU_Y + 12, 1, MENU_H - 24, 0xFFB8B3FF);
+    fb_fill_rect(MENU_X + MENU_W - 1, MENU_Y + 12,
+                 1, MENU_H - 24, 0xFFB8B3FF);
 
     // Заголовок.
-    fb_fill_rect(MENU_X + 1, MENU_Y + 1, MENU_W - 2, HEADER_H, 0xFF2C4A73);
-    fb_draw_string(MENU_X + 12, MENU_Y + 8, "Brainix", 0xFFF0F0F0, 0xFF2C4A73);
-    fb_draw_string(MENU_X + 76, MENU_Y + 8, "Menu", 0xFF7AB8FF, 0xFF2C4A73);
-    fb_fill_rect(MENU_X + 1, MENU_Y + HEADER_H - 1, MENU_W - 2, 1, 0xFF4A90E2);
+    fb_fill_round_rect_top_aa(MENU_X + 1, MENU_Y + 1, MENU_W - 2,
+                              HEADER_H, 13, 0xFFE9E7F7);
+    fb_draw_string(MENU_X + 12, MENU_Y + 8, "LambdaNexus", 0xFF28283A, 0);
+    fb_draw_string(MENU_X + 112, MENU_Y + 8, "Power", 0xFF675FCB, 0);
+    fb_fill_rect(MENU_X + 1, MENU_Y + HEADER_H - 1,
+                 MENU_W - 2, 1, 0xFFD8D5EA);
 
     // Hover.
     g_hover = startmenu_hit(mx, my);
@@ -128,17 +132,17 @@ void startmenu_draw(int mx, int my) {
         int iy = MENU_Y + HEADER_H + i * ITEM_H;
 
         if (i == STARTMENU_ITEM_SLEEP) {
-            fb_fill_rect(MENU_X + 12, iy, MENU_W - 24, 1, 0xFF0D1F33);
+            fb_fill_rect(MENU_X + 12, iy, MENU_W - 24, 1, 0xFFE3E2EA);
         }
 
         int is_hov = (i == g_hover);
         uint32_t bg;
         if (is_hov) {
-            bg = 0xFF3A5A80;
+            bg = 0xFFEAE8FA;
             fb_fill_rect(MENU_X + 1, iy, MENU_W - 2, ITEM_H, bg);
-            fb_fill_rect(MENU_X + 1, iy, 3, ITEM_H, 0xFF4A90E2);
+            fb_fill_rect(MENU_X + 1, iy, 3, ITEM_H, 0xFF7267E8);
         } else {
-            bg = 0xFF142844;
+            bg = 0xFFF8F7FC;
         }
 
         // 3D-иконка.
@@ -147,11 +151,11 @@ void startmenu_draw(int mx, int my) {
         draw_circle_3d(ic_x, ic_y, 9, g_icon_top[i], g_icon_bot[i]);
 
         // Основной текст.
-        uint32_t fg = is_hov ? 0xFFFFFFFF : 0xFFD8D8D8;
+        uint32_t fg = is_hov ? 0xFF28283A : 0xFF444653;
         fb_draw_string(MENU_X + 52, iy + 10, g_labels[i], fg, bg);
 
         // Мелкая подпись ниже.
-        uint32_t fg2 = is_hov ? 0xFFD0E5FF : 0xFF7A8A9A;
+        uint32_t fg2 = is_hov ? 0xFF675FCB : 0xFF858894;
         fb_draw_string(MENU_X + 52, iy + 26, g_sub[i], fg2, bg);
 
         // Стрелка при hover.

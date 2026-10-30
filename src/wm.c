@@ -14,14 +14,14 @@ extern void uart_puts(const char *s);
 #define RADIUS     8
 #define TITLE_R    6
 
-#define CLR_BORDER      0xFF5AA0F0
-#define CLR_BORDER_NF   0xFF3A5570
-#define CLR_TITLE_TOP   0xFF3B6FB8
-#define CLR_TITLE_BOT   0xFF1F3F6F
-#define CLR_TITLE_NF    0xFF2A3F55
-#define CLR_TITLE_FG    0xFFF0F0F0
-#define CLR_BODY        0xFF1A2E4A
-#define CLR_HANDLE      0xFF7AB8FF
+#define CLR_BORDER      0xFF8279E8
+#define CLR_BORDER_NF   0xFFB7BBC5
+#define CLR_TITLE_TOP   0xFFF8F7FC
+#define CLR_TITLE_BOT   0xFFE8E6F2
+#define CLR_TITLE_NF    0xFFE9EAF0
+#define CLR_TITLE_FG    0xFF25283A
+#define CLR_BODY        0xFFF8F8FB
+#define CLR_HANDLE      0xFF7267E8
 
 static wnd_t g_wnd[WM_MAX];
 static int   g_count = 0;
@@ -138,7 +138,7 @@ void wm_maximize_toggle(int idx) {
         w->saved_w = w->w; w->saved_h = w->h;
         w->x = 0; w->y = 52;
         w->w = 1280;
-        w->h = 800 - 52 - 56 - 12;
+        w->h = 800 - 52 - 70 - 16;
         w->maximized = 1;
     } else {
         w->x = w->saved_x; w->y = w->saved_y;

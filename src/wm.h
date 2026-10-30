@@ -14,6 +14,7 @@ typedef enum {
     WND_PERSONALIZE,
     WND_ABOUT,
     WND_VNC,
+    WND_BROWSER,
 } wnd_type_t;
 
 typedef struct {

@@ -11,6 +11,7 @@
 #include "initrd.h"
 #include "bkfs.h"
 #include "ksh.h"
+#include "browser.h"
 #include "uaccess.h"
 #include "mmu.h"
 #include "physmem.h"
@@ -86,7 +87,10 @@ static uint64_t sys_write(int fd, const void *user_buf, size_t len) {
         if (copy_from_user(kbuf, user_buf, len) < 0) return (uint64_t)-1;
 
         task_t *cur = sched_current();
-        if (cur && cur->to_window) {
+        if (cur && cur->to_browser) {
+            browser_output_write((const char *)kbuf, (uint32_t)len,
+                                 cur->browser_request_id);
+        } else if (cur && cur->to_window) {
             ksh_out_write((const char *)kbuf, (uint32_t)len);
         } else {
             for (size_t i = 0; i < len; i++) uart_putc((char)kbuf[i]);

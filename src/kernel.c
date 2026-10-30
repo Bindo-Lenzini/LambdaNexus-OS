@@ -31,6 +31,7 @@
 #include "desktop.h"
 #include "personalize.h"
 #include "about.h"
+#include "browser.h"
 #include "backdrop.h"
 #include "virtio_net.h"
 #include "net.h"
@@ -170,6 +171,7 @@ static int        g_win_edit_id   = -1;
 static int        g_win_files_id  = -1;
 static int        g_win_pers_id   = -1;
 static int        g_win_about_id  = -1;
+static int        g_win_browser_id = -1;
 
 static int        g_mouse_x = 640;
 static int        g_mouse_y = 400;
@@ -215,19 +217,20 @@ int ksh_request_edit(const char *name) {
 int ksh_request_personalize(void) { g_pers_request = 1; return 1; }
 
 // ---- Dock ----
-#define DOCK_H        64
-#define DOCK_W        280
+#define DOCK_H        70
+#define DOCK_W        360
 #define DOCK_X        ((1280 - DOCK_W) / 2)
-#define DOCK_Y        (800 - DOCK_H - 12)
+#define DOCK_Y        (800 - DOCK_H - 16)
 #define ICON_CELL     48
-#define ICON_PAD      16
-#define ICON_GAP      14
+#define ICON_PAD      36
+#define ICON_GAP      12
 
-static const int g_cell_x[4] = {
+static const int g_cell_x[5] = {
     DOCK_X + ICON_PAD + (ICON_CELL + ICON_GAP) * 0,
     DOCK_X + ICON_PAD + (ICON_CELL + ICON_GAP) * 1,
     DOCK_X + ICON_PAD + (ICON_CELL + ICON_GAP) * 2,
     DOCK_X + ICON_PAD + (ICON_CELL + ICON_GAP) * 3,
+    DOCK_X + ICON_PAD + (ICON_CELL + ICON_GAP) * 4,
 };
 
 static const uint8_t cursor_pattern[MOUSE_H][MOUSE_W] = {
@@ -304,6 +307,7 @@ static void draw_content(wnd_type_t type, int cx, int cy, int cw, int ch) {
     else if (type == WND_FILES)       files_draw_content(&g_files, cx, cy, cw, ch);
     else if (type == WND_PERSONALIZE) pers_draw_content(&g_pers, cx, cy, cw, ch);
     else if (type == WND_ABOUT)       about_draw_content(cx, cy, cw, ch);
+    else if (type == WND_BROWSER)     browser_draw_content(cx, cy, cw, ch);
 }
 
 static void draw_desktop(void);
@@ -376,7 +380,7 @@ void kwin_cmd_help(win_t *w) {
     win_puts(w, "  images - photos - personalize");
 }
 void kwin_cmd_ver(win_t *w) {
-    win_puts(w, "BrainixKernel OS v" BRAINIX_VERSION);
+    win_puts(w, "LambdaNexus OS v" LAMBDA_NEXUS_VERSION);
     win_puts(w, "ELF loader + per-process AS");
 }
 void kwin_cmd_tasks(win_t *w) {
@@ -448,6 +452,19 @@ int ksh_launch_program(const char *cmdline) {
     return 1;
 }
 
+int browser_load_url(const char *url, uint32_t request_id) {
+    const initrd_file_t *file = initrd_find("browser.elf");
+    if (!file || !url || !url[0]) return 0;
+    const char *args[] = {"browser", url};
+    task_t *task = task_create_from_elf_ex("Browser", file->data, file->size,
+                                           2, args);
+    if (!task) return 0;
+    task->to_browser = 1;
+    task->browser_request_id = request_id;
+    sched_add(task);
+    return 1;
+}
+
 void win_ksh_pump(win_t *w) {
     char line[WIN_LINE_MAX];
     int any = 0;
@@ -466,6 +483,13 @@ static void open_files_window(void) {
         wm_show(g_win_files_id, 1);
     }
     wm_raise(g_win_files_id);
+}
+static void open_browser_window(void) {
+    if (g_win_browser_id < 0)
+        g_win_browser_id = wm_create(WND_BROWSER, 140, 92, 1000, 620,
+                                     "LambdaNexus Browser");
+    wm_show(g_win_browser_id, 1);
+    wm_raise(g_win_browser_id);
 }
 static void open_editor(const char *name) {
     if (!editor_open(&g_edit, name)) {
@@ -508,7 +532,7 @@ static void open_ksh_with_sysinfo(void) {
 
 static int dock_hit(int x, int y) {
     if (y < DOCK_Y || y >= DOCK_Y + DOCK_H) return -1;
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 5; i++) {
         int cx = g_cell_x[i];
         if (x >= cx && x < cx + ICON_CELL) return i;
     }
@@ -516,10 +540,11 @@ static int dock_hit(int x, int y) {
 }
 static void handle_dock_click(int cell) {
     switch (cell) {
-        case 0: startmenu_toggle(); break;
+        case 0: open_browser_window(); break;
         case 1: if (g_win_ksh_id >= 0) { wm_show(g_win_ksh_id, 1); wm_raise(g_win_ksh_id); } break;
         case 2: open_files_window(); break;
         case 3: open_editor("untitled.txt"); break;
+        case 4: startmenu_toggle(); break;
     }
 }
 static void handle_startmenu_click(int item) {
@@ -533,11 +558,8 @@ static void handle_startmenu_click(int item) {
 }
 static void desktop_double_click(int idx) {
     switch (idx) {
-        case DI_COMPUTER:    open_about_window(); break;
-        case DI_RECYCLE:
-            win_puts(&g_term, "[Recycle Bin] empty");
-            if (g_win_ksh_id >= 0) wm_raise(g_win_ksh_id);
-            break;
+        case DI_BROWSER:     open_browser_window(); break;
+        case DI_ABOUT:       open_about_window(); break;
         case DI_TERMINAL:
             if (g_win_ksh_id >= 0) { wm_show(g_win_ksh_id, 1); wm_raise(g_win_ksh_id); }
             break;
@@ -649,6 +671,10 @@ uint64_t irq_handler(uint64_t sp) {
                                 if (about_hit_report(cx, cy, ccx, ccy, ccw, cch)) {
                                     open_ksh_with_sysinfo();
                                 }
+                            } else if (w->type == WND_BROWSER) {
+                                int ccx = w->x + 4, ccy = w->y + 32;
+                                int ccw = w->w - 8, cch = w->h - 40;
+                                browser_click(cx, cy, ccx, ccy, ccw, cch);
                             } else {
                                 int ccx = w->x + 4, ccy = w->y + 32;
                                 int ccw = w->w - 8, cch = w->h - 40;
@@ -747,29 +773,30 @@ extern char user_fault_end[];
 static void draw_dock_cell(int x, int y, int selected, int hover, int which) {
     if (selected) {
         fb_blend_round_rect_aa(x - 2, y - 2, ICON_CELL + 4, ICON_CELL + 4,
-                               10, 0xFF4A90E2, 190);
+                               12, 0xFF8F87F0, 180);
     } else if (hover) {
         fb_blend_round_rect_aa(x - 2, y - 2, ICON_CELL + 4, ICON_CELL + 4,
-                               10, 0xFF4A90E2, 100);
+                               12, 0xFF8F87F0, 96);
     }
     switch (which) {
-        case 0: icon_draw_brainix(x, y, selected); break;
+        case 0: icon_draw_browser(x, y, selected); break;
         case 1: icon_draw_ksh(x, y, selected);     break;
         case 2: icon_draw_files(x, y, selected);   break;
         case 3: icon_draw_editor(x, y, selected);  break;
+        case 4: icon_draw_lambda(x, y, selected);  break;
     }
 }
 
 static void draw_top_bar(void) {
-    backdrop_draw_frosted_rect(0, 0, 1280, 52, 0xFF1A2D48, 170);
-    fb_blend_rect(0, 0, 1280, 1, 0xFFFFFFFF, 60);
-    fb_draw_string_aa(16, 18, "BrainixKernel", 0xFFF0F0F0, 0);
-    fb_draw_string_aa(156, 18, "OS", 0xFF7AB8FF, 0);
-    fb_draw_string_aa(200, 18, "v" BRAINIX_VERSION, 0xFFAAAAAA, 0);
+    backdrop_draw_frosted_rect(0, 0, 1280, 52, 0xFFF5F4FA, 205);
+    fb_blend_rect(0, 0, 1280, 1, 0xFFFFFFFF, 150);
+    fb_draw_string_aa(18, 18, "LambdaNexus", 0xFF28283A, 0);
+    fb_draw_string_aa(142, 18, "OS", 0xFF675FCB, 0);
+    fb_draw_string_aa(180, 18, "v" LAMBDA_NEXUS_VERSION, 0xFF707481, 0);
     {
         char buf[16];
         rtc_format_full_utc3(buf, sizeof(buf));
-        fb_draw_string_aa(1104, 18, buf, 0xFFE0E0E0, 0);
+        fb_draw_string_aa(1104, 18, buf, 0xFF343744, 0);
     }
     fb_blend_rect(0, 51, 1280, 1, 0x00000000, 80);
 }
@@ -777,13 +804,14 @@ static void draw_top_bar(void) {
 static void draw_dock(void) {
     fb_darken_rect(DOCK_X - 6, DOCK_Y - 2, DOCK_W + 12, DOCK_H + 10, 200);
     fb_darken_rect(DOCK_X - 3, DOCK_Y - 1, DOCK_W + 6, DOCK_H + 6, 170);
-    backdrop_draw_frosted(DOCK_X, DOCK_Y, DOCK_W, DOCK_H, 16,
-                          0xFF0A1828, 190);
+    backdrop_draw_frosted(DOCK_X, DOCK_Y, DOCK_W, DOCK_H, 18,
+                          0xFFEDECF5, 220);
     fb_blend_round_rect_aa(DOCK_X + 4, DOCK_Y + 1, DOCK_W - 8, 1, 1,
                            0xFFFFFFFF, 90);
 
     int hover = dock_hit(g_mouse_x, g_mouse_y);
     wnd_t *foc = wm_focused();
+    int browser_sel = (foc && foc->type == WND_BROWSER) ? 1 : 0;
     int ksh_sel   = (foc && foc->type == WND_KSH) ? 1 : 0;
     int files_sel = (foc && foc->type == WND_FILES) ? 1 : 0;
     int edit_sel  = (foc && foc->type == WND_EDITOR && editor_is_open(&g_edit)) ? 1 : 0;
@@ -791,19 +819,22 @@ static void draw_dock(void) {
     int ksh_min   = wm_is_minimized_any(WND_KSH);
     int files_min = wm_is_minimized_any(WND_FILES);
     int edit_min  = wm_is_minimized_any(WND_EDITOR);
+    int browser_min = wm_is_minimized_any(WND_BROWSER);
 
-    int y_offset[4] = { 0, 0, 0, 0 };
-    if (hover >= 0 && hover < 4) y_offset[hover] = -6;
+    int y_offset[5] = { 0, 0, 0, 0, 0 };
+    if (hover >= 0 && hover < 5) y_offset[hover] = -6;
     int base_y = DOCK_Y + 8;
 
-    draw_dock_cell(g_cell_x[0], base_y + y_offset[0], startmenu_is_open(), hover == 0, 0);
-    draw_dock_cell(g_cell_x[1], base_y + y_offset[1], ksh_sel,   hover == 1, 1);
+    draw_dock_cell(g_cell_x[0], base_y + y_offset[0], browser_sel, hover == 0, 0);
+    draw_dock_cell(g_cell_x[1], base_y + y_offset[1], ksh_sel, hover == 1, 1);
     draw_dock_cell(g_cell_x[2], base_y + y_offset[2], files_sel, hover == 2, 2);
-    draw_dock_cell(g_cell_x[3], base_y + y_offset[3], edit_sel,  hover == 3, 3);
+    draw_dock_cell(g_cell_x[3], base_y + y_offset[3], edit_sel, hover == 3, 3);
+    draw_dock_cell(g_cell_x[4], base_y + y_offset[4], startmenu_is_open(), hover == 4, 4);
 
     if (ksh_min) { int cx = g_cell_x[1] + ICON_CELL / 2; fb_fill_circle_aa(cx, DOCK_Y + DOCK_H - 5, 3, 0xFFFFBD2E); }
     if (files_min) { int cx = g_cell_x[2] + ICON_CELL / 2; fb_fill_circle_aa(cx, DOCK_Y + DOCK_H - 5, 3, 0xFFFFBD2E); }
     if (edit_min) { int cx = g_cell_x[3] + ICON_CELL / 2; fb_fill_circle_aa(cx, DOCK_Y + DOCK_H - 5, 3, 0xFFFFBD2E); }
+    if (browser_min) { int cx = g_cell_x[0] + ICON_CELL / 2; fb_fill_circle_aa(cx, DOCK_Y + DOCK_H - 5, 3, 0xFF7267E8); }
 }
 
 static void draw_desktop(void) {
@@ -829,6 +860,8 @@ static void on_key(char c) {
         files_key(&g_files, c);
     } else if (f->type == WND_PERSONALIZE) {
         pers_key(&g_pers, c);
+    } else if (f->type == WND_BROWSER) {
+        browser_key(c);
     }
     full_redraw();
     cursor_show();
@@ -836,7 +869,7 @@ static void on_key(char c) {
 
 void kernel_main(uint64_t dtb) {
     uart_puts("\033[?2004l");
-    uart_puts("BrainixKernel booted successfully!\n");
+    uart_puts("LambdaNexus OS booted successfully!\n");
     uart_puts("Welcome to your own OS.\n");
 
     uart_puts("[step 7] DTB at "); uart_puthex(dtb); uart_puts("\n");
@@ -857,6 +890,7 @@ void kernel_main(uint64_t dtb) {
     uart_puts("  files in initrd: "); uart_putu((uint64_t)nfiles); uart_puts("\n");
 
     uart_puts("[step 21] init ksh\n"); ksh_init();
+    browser_init();
 
     uart_puts("[step 2] init GICv2 + timer\n");
     gic_init(); timer_init();
@@ -961,7 +995,7 @@ void kernel_main(uint64_t dtb) {
 
     uart_puts("[step 43] create ksh window\n");
     win_init(&g_term);
-    win_puts(&g_term, "BrainixKernel OS v" BRAINIX_VERSION);
+    win_puts(&g_term, "LambdaNexus OS v" LAMBDA_NEXUS_VERSION);
     win_puts(&g_term, "ELF loader + per-process AS");
     win_puts(&g_term, "");
     win_puts(&g_term, "Try 'sysinfo'.");

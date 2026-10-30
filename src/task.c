@@ -60,6 +60,8 @@ static task_t *alloc_task(const char *name,
     t->state      = TASK_READY;
     t->next       = 0;
     t->to_window  = 0;
+    t->to_browser = 0;
+    t->browser_request_id = 0;
     t->kstack_base = (uint64_t)kstack_kva;
     t->ttbr0_pa   = 0;
     t->asid       = 0;

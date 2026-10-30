@@ -1,7 +1,7 @@
-#ifndef BRAINIX_VERSION_H
-#define BRAINIX_VERSION_H
+#ifndef LAMBDA_NEXUS_VERSION_H
+#define LAMBDA_NEXUS_VERSION_H
 
 /* Единая версия ядра. Меняйте только здесь. */
-#define BRAINIX_VERSION "0.45"
+#define LAMBDA_NEXUS_VERSION "0.1"
 
 #endif

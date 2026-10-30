@@ -14,9 +14,9 @@
 #define CLR_FG            0xFFFFFFFF
 #define CLR_FG_DIM        0xFFA8A8B0
 #define CLR_SEP           0xFF2E2E36
-#define CLR_ACCENT        0xFF4A90E2
-#define CLR_ACCENT_D      0xFF1E4480
-#define CLR_LOGO_LIGHT    0xFF5AB0F0
+#define CLR_ACCENT        0xFF8277E8
+#define CLR_ACCENT_D      0xFF5548B8
+#define CLR_LOGO_LIGHT    0xFFB8B1FF
 #define CLR_DONUT_USED    0xFF5AA8F0
 #define CLR_DONUT_USED_H  0xFF88C8FF
 #define CLR_DONUT_FREE    0xFF2E3A4A
@@ -147,33 +147,19 @@ static void draw_big_logo(int cx, int cy, int r) {
     fb_blend_round_rect_aa(cx - r, cy - r + 5, r*2, r*2, r, 0xFF000000, 90);
     fb_fill_circle_aa(cx, cy, r, CLR_ACCENT_D);
     fb_fill_circle_aa(cx,     cy - 1, r - 1, CLR_ACCENT);
-    fb_fill_circle_aa(cx - 2, cy - 3, r - 4, 0xFF3A88C8);
+    fb_fill_circle_aa(cx - 2, cy - 3, r - 4, 0xFF7166D8);
     fb_fill_circle_aa(cx - 4, cy - 6, r - 10, CLR_LOGO_LIGHT);
 
     // Спекулярный блик
     fb_fill_circle_aa(cx - (r * 3) / 10, cy - (r * 4) / 10, r / 5, 0xFFC8E8FF);
     fb_fill_circle_aa(cx - (r * 3) / 10, cy - (r * 4) / 10, r / 10, 0xFFFFFFFF);
 
-    // Стойка B
-    int bw = (r * 10) / 48;
-    int bh = (r * 52) / 48;
-    int bx = cx - (r * 15) / 48;
-    int by = cy - bh / 2;
-    fb_fill_round_rect_aa(bx, by, bw, bh, bw / 3, 0xFFFFFFFF);
-
-    // Верхняя дуга
-    int arc_r = (r * 14) / 48;
-    int arc_dx = (r * 4) / 48;
-    int arc_dy = (r * 13) / 48;
-    fb_fill_circle_aa(cx + arc_dx, cy - arc_dy, arc_r, 0xFFFFFFFF);
-    fb_fill_circle_aa(cx + arc_dx, cy - arc_dy, arc_r / 2, CLR_ACCENT_D);
-    // Нижняя дуга
-    fb_fill_circle_aa(cx + arc_dx, cy + arc_dy, arc_r, 0xFFFFFFFF);
-    fb_fill_circle_aa(cx + arc_dx, cy + arc_dy, arc_r / 2, CLR_ACCENT_D);
-
-    // Перекрываем стойкой левые края дуг
-    fb_fill_round_rect_aa(bx, by, bw + 2, bh, bw / 3, 0xFFFFFFFF);
-    fb_fill_rect(cx + arc_r + arc_dx - 2, cy - 5, 2, 10, 0xFFFFFFFF);
+    fb_draw_line_aa(cx - r / 2, cy + r / 2, cx, cy - r / 2,
+                    0xFFFFFFFF, 255);
+    fb_draw_line_aa(cx, cy - r / 2, cx + r / 2, cy + r / 2,
+                    0xFFFFFFFF, 255);
+    fb_draw_line_aa(cx - r / 4, cy + r / 8, cx + r / 4, cy + r / 8,
+                    0xFFFFFFFF, 255);
 }
 
 static void hr(int x, int y, int w) {
@@ -219,9 +205,9 @@ void about_draw_content(int cx, int cy, int cw, int ch) {
     int logo_cy = cy + 56;
     draw_big_logo(logo_cx, logo_cy, 40);
 
-    fb_draw_string_aa(cx + 116, cy + 36, "BrainixKernel OS", CLR_FG, CLR_BG);
-    fb_draw_string_aa(cx + 116, cy + 60, "Версия " BRAINIX_VERSION, CLR_FG_DIM, CLR_BG);
-    fb_draw_string_aa(cx + 116, cy + 80, "ARM64, Brainix v" BRAINIX_VERSION, CLR_FG_DIM, CLR_BG);
+    fb_draw_string_aa(cx + 116, cy + 36, "LambdaNexus OS", CLR_FG, CLR_BG);
+    fb_draw_string_aa(cx + 116, cy + 60, "Версия " LAMBDA_NEXUS_VERSION, CLR_FG_DIM, CLR_BG);
+    fb_draw_string_aa(cx + 116, cy + 80, "ARM64, LambdaNexus v" LAMBDA_NEXUS_VERSION, CLR_FG_DIM, CLR_BG);
 
     // ===================== DATA =====================
     uint64_t total_pages = physmem_total_pages();
@@ -299,7 +285,7 @@ void about_draw_content(int cx, int cy, int cw, int ch) {
 
     // --- О системе ---
     section(px, py, "О системе"); py += title_h;
-    row(px, py, pw, "Модель",       "BrainixStation M1"); py += row_h;
+    row(px, py, pw, "Модель",       "LambdaNexus VM"); py += row_h;
     row(px, py, pw, "Процессор",    "ARM Cortex-A72");    py += row_h;
     row(px, py, pw, "Архитектура",  "64-bit (ARMv8-A)");  py += row_h;
     py += 4; hr(px, py, pw); py += 12;

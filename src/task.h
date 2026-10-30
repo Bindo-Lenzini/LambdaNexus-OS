@@ -61,6 +61,8 @@ typedef struct task {
     task_state_t  state;
     struct task  *next;
     int           to_window;
+    int           to_browser;
+    uint32_t      browser_request_id;
     uint64_t      kstack_base;
     uint64_t      ttbr0_pa;
     uint16_t      asid;

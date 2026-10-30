@@ -29,6 +29,7 @@ CFLAGS := --target=$(TARGET) \
           -ffreestanding -nostdlib -O2 -Wall -Wextra \
           -mgeneral-regs-only -fno-stack-protector \
           -fno-pic -fno-pie -fno-builtin -mno-outline-atomics \
+          -MMD -MP \
           -I$(SRC_DIR)
 
 ASFLAGS := --target=$(TARGET)
@@ -37,6 +38,7 @@ USER_CFLAGS := --target=$(TARGET) \
                -ffreestanding -nostdlib -O2 -Wall -Wextra \
                -mgeneral-regs-only -fno-stack-protector \
                -fno-pic -fno-pie -fno-builtin -mno-outline-atomics \
+               -MMD -MP \
                -I$(USER_DIR)
 
 QEMU_FLAGS := -M virt,gic-version=2 -cpu cortex-a72 -m 2048M \
@@ -100,6 +102,7 @@ C_SOURCES := \
     $(SRC_DIR)/personalize.c \
     $(SRC_DIR)/clipboard.c \
     $(SRC_DIR)/about.c \
+    $(SRC_DIR)/browser.c \
     $(SRC_DIR)/backdrop.c \
     $(SRC_DIR)/net.c \
     $(SRC_DIR)/arp.c \
@@ -128,7 +131,11 @@ USER_OBJS_BASE := \
     $(BUILD_DIR)/user/libc.o \
     $(BUILD_DIR)/user/dns.o
 
-USER_PROGS := test sh echo wc ls cat whoami udp_send udp_echo host tcp_connect wget
+USER_PROGS := test sh echo wc ls cat whoami udp_send udp_echo host tcp_connect wget browser
+
+DEPFILES := $(ALL_OBJS:.o=.d) $(USER_OBJS_BASE:.o=.d) \
+            $(addprefix $(BUILD_DIR)/user/,$(addsuffix .d,$(USER_PROGS)))
+-include $(DEPFILES)
 
 .PHONY: all clean run smoke host-test
 
@@ -207,6 +214,10 @@ smoke: $(KERNEL_BIN) $(DISK_IMG)
 	sh $(SCRIPTS)/smoke.sh --qemu "$(QEMU)" --kernel "$(KERNEL_BIN)" \
 	    --disk "$(DISK_IMG)" --serial-log "$(BUILD_DIR)/smoke-serial.log"
 
+$(BUILD_DIR)/browser_test: tests/browser_test.c user/browser.c user/user.h user/libc.h user/dns.h | $(BUILD_DIR)
+	$(HOSTCC) -std=c11 -Wall -Wextra -Werror -ffunction-sections -fdata-sections \
+	    -Iuser $(HOST_GC_SECTIONS) tests/browser_test.c -o $@
+
 $(BUILD_DIR)/elf_test: tests/elf_test.c $(SRC_DIR)/elf.c $(SRC_DIR)/elf.h | $(BUILD_DIR)
 	$(HOSTCC) -std=c11 -Wall -Wextra -Werror -I$(SRC_DIR) \
 	    tests/elf_test.c $(SRC_DIR)/elf.c -o $@
@@ -228,8 +239,10 @@ $(BUILD_DIR)/mmu_cow_test: tests/mmu_cow_test.c $(SRC_DIR)/mmu.c \
 	    tests/mmu_cow_test.c $(SRC_DIR)/mmu.c \
 	    $(HOST_GC_SECTIONS) -o $@
 
-host-test: $(BUILD_DIR)/elf_test $(BUILD_DIR)/bkfs_test $(BUILD_DIR)/sched_test \
-           $(BUILD_DIR)/mmu_cow_test
+host-test: $(BUILD_DIR)/browser_test $(BUILD_DIR)/elf_test $(BUILD_DIR)/bkfs_test \
+           $(BUILD_DIR)/sched_test $(BUILD_DIR)/mmu_cow_test
+	$(BUILD_DIR)/browser_test
+	@echo "Browser HTML extraction passed"
 	$(BUILD_DIR)/elf_test
 	$(BUILD_DIR)/bkfs_test
 	$(BUILD_DIR)/sched_test
