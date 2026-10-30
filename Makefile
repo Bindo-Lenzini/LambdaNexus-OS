@@ -137,7 +137,7 @@ DEPFILES := $(ALL_OBJS:.o=.d) $(USER_OBJS_BASE:.o=.d) \
             $(addprefix $(BUILD_DIR)/user/,$(addsuffix .d,$(USER_PROGS)))
 -include $(DEPFILES)
 
-.PHONY: all clean run smoke host-test
+.PHONY: all clean run buildroot-image buildroot-run kernel-run smoke host-test
 
 all: $(KERNEL_BIN)
 
@@ -207,7 +207,15 @@ $(KERNEL_ELF): $(ALL_OBJS) linker.ld
 $(KERNEL_BIN): $(KERNEL_ELF)
 	$(OBJCOPY) -O binary $< $@
 
-run: $(KERNEL_BIN) $(MEDIA_IMG) $(DISK_IMG) $(INITRD_ELFS)
+run: buildroot-run
+
+buildroot-image:
+	sh scripts/buildroot.sh build
+
+buildroot-run:
+	QEMU="$(QEMU)" sh scripts/buildroot.sh run
+
+kernel-run: $(KERNEL_BIN) $(MEDIA_IMG) $(DISK_IMG) $(INITRD_ELFS)
 	$(QEMU) $(QEMU_FLAGS) -kernel $(KERNEL_BIN)
 
 smoke: $(KERNEL_BIN) $(DISK_IMG)

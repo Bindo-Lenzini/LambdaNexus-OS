@@ -1,0 +1,17 @@
+#!/bin/sh
+
+clear
+printf '\033[1;35m'
+cat <<'EOF'
+ _                    _       _   _
+| |    __ _ _ __ ___ | |__   | \ | | _____  ___ _   _ ___
+| |   / _` | '_ ` _ \| '_ \  |  \| |/ _ \ \/ / | | / __|
+| |__| (_| | | | | | | |_) | | |\  |  __/>  <| |_| \__ \
+|_____\__,_|_| |_| |_|_.__/  |_| \_|\___/_/\_\\__,_|___/
+EOF
+printf '\033[0m\n'
+printf 'LambdaNexus OS - ARM64 system\n'
+printf 'This is the custom Buildroot image, not Ubuntu.\n\n'
+PS1='lambda-nexus# '
+export PS1
+exec /bin/sh -i

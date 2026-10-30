@@ -1,7 +1,7 @@
 # LambdaNexus OS
 
-An experimental AArch64 kernel written in C and ARM64 assembly, developed on
-Apple Silicon and tested in QEMU.
+An experimental ARM64 operating system assembled with Buildroot, with a
+LambdaNexus root filesystem and a separate experimental freestanding kernel.
 
 [![Build](https://github.com/Bindo-Lenzini/LambdaNexus-OS/actions/workflows/build.yml/badge.svg)](https://github.com/Bindo-Lenzini/LambdaNexus-OS/actions/workflows/build.yml)
 [![License: GPL-2.0](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](./LICENSE)
@@ -34,20 +34,23 @@ validated.
 
 ## Project overview
 
-LambdaNexus OS targets the AArch64 architecture and QEMU's `virt` machine. It
-uses a freestanding toolchain and a custom linker script. The repository
-contains the kernel, a small userland, build helpers, and code for virtual
-devices, storage, networking, and a graphical desktop.
+LambdaNexus OS is built as an ARM64 Linux image with Buildroot. The runtime
+image contains its own minimal root filesystem and branded console; it does
+not boot an Ubuntu cloud image or install packages from Ubuntu at first boot.
+The repository also retains the original BrainixKernel-derived freestanding
+kernel and its small userland as a separate experimental target.
 
 | Area | Current scope |
 | --- | --- |
 | Architecture | AArch64 / ARM64, `aarch64-elf`, QEMU `virt`, Cortex-A72, GICv2 |
 | Kernel | C and ARM64 assembly, exception handling, memory management, system calls |
 | Processes | User tasks, round-robin scheduling, `fork`, `exec`, `wait`, and signals |
-| Devices and graphics | Virtio devices, framebuffer, keyboard, tablet, and window manager |
+| Devices and graphics | Virtio devices, framebuffer, keyboard, tablet, and experimental kernel window manager |
 | Storage | Initrd, block-device support, and the custom BKFS filesystem |
-| Networking | Experimental virtio networking and ARP, DHCP, IP, ICMP, UDP, TCP, and socket code |
-| Userland | Freestanding runtime, shell, utility programs, and an early text-mode web browser |
+| Networking | Buildroot Linux networking in the system image; experimental networking in the freestanding kernel |
+| System image | Buildroot ARM64 Linux image with a LambdaNexus-branded console |
+| Desktop and browsers | Not included in the initial Buildroot image; Firefox and Chrome integration remains future work |
+| Kernel userland | Freestanding runtime, shell, and utility programs for the experimental kernel |
 
 Subsystems are evolving. The presence of code does not imply full standards
 compliance, complete functionality, or comprehensive testing.
@@ -60,9 +63,12 @@ compliance, complete functionality, or comprehensive testing.
 - User tasks default to UID/GID `1000` and empty effective/permitted capability
   masks; forked tasks inherit credentials.
 - A small userland including a shell, basic utilities, and network examples.
-- Experimental virtual-device, storage, network, and graphical desktop support.
-- A basic HTTP browser that extracts readable text from simple HTML pages.
-  HTTPS/TLS, JavaScript, images, and modern web applications are not supported.
+- An experimental freestanding AArch64 kernel with virtual-device, storage,
+  network, and graphical desktop support.
+- A separate Buildroot-based ARM64 Linux image with a LambdaNexus welcome
+  screen and automatic shell startup.
+- The Buildroot image is a minimal console system, not yet a graphical desktop;
+  Firefox and Google Chrome are not installed yet.
 
 ## Latest development update
 
@@ -107,18 +113,30 @@ compliance, complete functionality, or comprehensive testing.
   isolation, repeated `exec` and fork/wait cycles, and reaping a faulted child.
 - **Continuous integration:** CI runs the host ELF tests, builds the kernel,
   and boots a headless QEMU smoke test with 512 MiB of guest RAM. The regular
-  graphical QEMU configuration remains at 2 GiB.
+  graphical configuration for the legacy kernel runner remains at 2 GiB.
 
 The [latest CI run](https://github.com/Bindo-Lenzini/LambdaNexus-OS/actions)
 passed these configured checks. Passing them only confirms the tested
 scenarios; it is not a complete security audit.
 
+### 2026-10-30 — Buildroot system image
+
+- `make run` now boots a Buildroot-built ARM64 Linux image with a LambdaNexus
+  console instead of launching Ubuntu Server.
+- The first image has no first-boot package installation and does not rely on
+  Ubuntu repositories or cloud-init.
+- A Linux-hosted GitHub Actions workflow builds and QEMU-boot-tests the image.
+  macOS can run that image after downloading the workflow artifact.
+- Firefox, Chrome, and the graphical desktop are not part of this initial
+  image; they need a separate integration effort.
+
 ## Build and run
 
 ### Requirements
 
-The documented development environment is macOS on Apple Silicon. Linux can
-also be used for cross-compilation and headless tests.
+The documented development environment is macOS on Apple Silicon. Buildroot
+itself requires a Linux build host; the resulting ARM64 image runs in QEMU on
+macOS or Linux.
 
 Install the required tools on macOS:
 
@@ -127,8 +145,9 @@ brew install qemu llvm lld python
 python3 -m pip install pillow
 ```
 
-The build uses Clang, LLD, `llvm-objcopy`, Python 3, Pillow, and Make.
-`qemu-system-aarch64` is required to run the virtual machine.
+The experimental kernel build uses Clang, LLD, `llvm-objcopy`, Python 3,
+Pillow, and Make. Running the Buildroot image requires `qemu-system-aarch64`.
+Building it requires a Linux host with Buildroot's standard host dependencies.
 
 ### Build
 
@@ -138,10 +157,36 @@ cd LambdaNexus-OS
 make
 ```
 
-The browser is available from its dock icon or the Browser desktop shortcut.
-Enter an `http://` address in its address bar and press Return. This early
-browser supports plain HTTP and basic text extraction only; it does not support
-HTTPS/TLS or execute JavaScript.
+`make` builds the experimental freestanding kernel. `make run` boots the
+Buildroot system image.
+
+### Run the LambdaNexus Buildroot image
+
+```sh
+make run
+```
+
+On a Linux host, the first run builds a pinned Buildroot release and a
+LambdaNexus ARM64 image. On macOS, download the `lambdanexus-buildroot`
+artifact from the repository's **Build LambdaNexus image** workflow and
+extract `Image` and `rootfs.ext4` into `.buildroot/output/images/` first.
+The guest starts the LambdaNexus shell directly; there is no Ubuntu login
+screen or first-boot package installation.
+
+To build the image explicitly on Linux, run `make buildroot-image`. The image
+uses 2 GiB of RAM and 4 virtual CPUs by default; override them with
+`LAMBDA_MEMORY` and `LAMBDA_CPUS` if needed. Build output and downloads are
+stored in `.buildroot/`.
+
+### Run the experimental freestanding kernel
+
+```sh
+make kernel-run
+```
+
+This boots the original freestanding AArch64 kernel in QEMU. Its early
+text-only browser is an experimental kernel demo. The Buildroot image is a
+separate Linux-based system and does not yet include Firefox or Chrome.
 
 The build produces:
 
@@ -154,15 +199,6 @@ If `llvm-objcopy` is not at the Makefile's default Homebrew path, specify it:
 make OBJCOPY=llvm-objcopy
 ```
 
-### Run the graphical VM
-
-```sh
-make run
-```
-
-The graphical QEMU configuration uses the macOS Cocoa display backend and
-2 GiB of guest RAM. Its default display settings may need adjustment on Linux.
-
 ### Run headless tests
 
 Install `qemu-system-aarch64` and the build dependencies, then run:
@@ -172,11 +208,13 @@ make host-test HOSTCC=cc
 make smoke OBJCOPY=llvm-objcopy QEMU=qemu-system-aarch64
 ```
 
-The smoke target uses a headless QEMU guest with 512 MiB of RAM and a disk
-snapshot; guest disk writes are not persisted to `disk.img`.
+The smoke target tests the experimental kernel in a headless QEMU guest with
+512 MiB of RAM and a disk snapshot; guest disk writes are not persisted to
+`disk.img`.
 
 `make clean` removes `build/`, `media.img`, and `net.pcap`. It keeps
-`disk.img` and ELF files in `initrd/`, which may be tracked build inputs.
+`.buildroot/`, `.lambda-vm/` (the previous Ubuntu VM data), `disk.img`, and ELF
+files in `initrd/`, which may be tracked build inputs.
 
 ## Testing and CI
 

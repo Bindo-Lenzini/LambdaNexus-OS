@@ -1,0 +1,57 @@
+name: Build LambdaNexus image
+
+on:
+  push:
+    paths:
+      - "buildroot-external/**"
+      - "scripts/buildroot.sh"
+      - ".github/workflows/buildroot.yml"
+  pull_request:
+    paths:
+      - "buildroot-external/**"
+      - "scripts/buildroot.sh"
+      - ".github/workflows/buildroot.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Buildroot host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc bison build-essential cpio file flex \
+            g++ gcc git libncurses-dev libssl-dev make patch perl \
+            python3 rsync unzip wget
+      - name: Build the custom ARM64 image
+        run: make buildroot-image
+      - name: Boot-test the image in QEMU
+        shell: bash
+        run: |
+          set +e
+          timeout 90s qemu-system-aarch64 \
+            -machine virt,gic-version=3 -cpu cortex-a72 -smp 2 -m 1024 \
+            -kernel .buildroot/output/images/Image \
+            -drive if=none,id=rootfs,format=raw,file=.buildroot/output/images/rootfs.ext4 \
+            -device virtio-blk-device,drive=rootfs \
+            -netdev user,id=net0 \
+            -device virtio-net-pci,netdev=net0 \
+            -append "root=/dev/vda rw rootwait console=ttyAMA0,115200" \
+            -display none -monitor none -serial stdio \
+            > .buildroot/boot.log 2>&1
+          status=$?
+          set -e
+          if [ "$status" -ne 124 ]; then
+            cat .buildroot/boot.log
+            exit 1
+          fi
+          grep -F "LambdaNexus OS" .buildroot/boot.log
+          grep -F "lambda-nexus#" .buildroot/boot.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lambdanexus-buildroot
+          path: |
+            .buildroot/output/images/Image
+            .buildroot/output/images/rootfs.ext4
+          if-no-files-found: error

@@ -1,4 +1,7 @@
 build/
+.lambda-vm/
+.buildroot/
+*.qcow2
 *.img
 *.pcap
 *.bak
