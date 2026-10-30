@@ -58,7 +58,8 @@ jobs:
       - name: Compress and checksum the images
         run: |
           gzip -1 -k .buildroot/output/images/Image
-          gzip -1 -k .buildroot/output/images/rootfs.ext4
+          gzip -1 -c .buildroot/output/images/rootfs.ext2 \
+            > .buildroot/output/images/rootfs.ext4.gz
           cd .buildroot/output/images
           sha256sum Image.gz rootfs.ext4.gz > SHA256SUMS
       - name: Publish the verified image release
